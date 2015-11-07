@@ -1,6 +1,16 @@
 (in-package :info.read-eval-print.css)
 
-(defvar *css-output* *standard-output*)
+(defvar *buffer* nil)
+
+(defmacro with-css-buffer ((&optional buffer) &body body)
+  `(let ((*buffer* (or ,buffer (make-array 256 :adjustable t :fill-pointer 0))))
+     ,@body
+     *buffer*))
+
+(defun emit (format &rest args)
+  (vector-push-extend
+   (sb-ext:string-to-octets (apply #'format nil format args))
+   *buffer*))
 
 (defun s (x)
   (typecase x
@@ -18,11 +28,11 @@
         (nreverse (cons form acc)))))
 
 (defun write-selector (selector)
-  (format *css-output* "~&~{~a~^ ~}" (mapcar #'s selector)))
+  (emit "~&~{~a~^ ~}" (mapcar #'s selector)))
 
 (defun write-property (property)
-  (format *css-output* "~a:" (s (car property)))
-  (format *css-output* "~{~a~^ ~};" (mapcar #'s (cdr property))))
+  (emit "~a:" (s (car property)))
+  (emit "~{~a~^ ~};" (mapcar #'s (cdr property))))
 
 (defun flatten (form &optional parent-selector)
   (if (null form)
@@ -42,7 +52,7 @@
   (mapc (lambda (form)
           (loop for (selector properties) in (flatten form) do
             (write-selector selector)
-            (write-char #\{ *css-output*)
+            (emit "{")
             (mapc #'write-property (split-properties properties))
-            (write-char #\} *css-output*)))
+            (emit "}")))
         forms))

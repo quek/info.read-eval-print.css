@@ -3,4 +3,4 @@
 (defpackage :info.read-eval-print.css
  (:use :cl)
  (:export #:css
-          #:*css-output*))
+          #:with-css-buffer))
